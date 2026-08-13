@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly usersService: UsersService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -12,9 +13,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Le payload devient request.user — inclut companyId pour l'isolation
-  // multi-tenant et role pour les permissions.
-  async validate(payload: { sub: string; role: string; companyId: string | null }) {
-    return { userId: payload.sub, role: payload.role, companyId: payload.companyId };
+  // Revalide l'utilisateur en base à chaque requête (pas seulement le JWT) :
+  // un compte désactivé après émission du token perd immédiatement l'accès.
+  async validate(payload: { sub: string }) {
+    const user = await this.usersService.findById(payload.sub);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Compte inactif ou introuvable');
+    }
+    return { userId: user.id, isSuperAdmin: user.isSuperAdmin };
   }
 }

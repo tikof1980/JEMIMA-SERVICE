@@ -2,18 +2,27 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { UsersModule } from '../users/users.module';
+import { AuditModule } from '../audit/audit.module';
+import { MembershipsModule } from '../memberships/memberships.module';
 
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '8h' },
+    UsersModule,
+    AuditModule,
+    MembershipsModule,
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET,
+        signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '8h' },
+      }),
     }),
   ],
-  providers: [JwtStrategy],
+  providers: [JwtStrategy, AuthService],
+  controllers: [AuthController],
   exports: [JwtModule],
 })
-// NOTE: AuthController/AuthService (login, register, gestion des utilisateurs
-// et des rôles) seront implémentés en Phase 3, conformément à la roadmap.
 export class AuthModule {}

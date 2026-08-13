@@ -7,6 +7,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { AiCoreModule } from './ai-core/ai-core.module';
+import { UsersModule } from './users/users.module';
+import { MembershipsModule } from './memberships/memberships.module';
+import { RolesModule } from './roles/roles.module';
+import { AuditModule } from './audit/audit.module';
+import { InvitationsModule } from './invitations/invitations.module';
 
 @Module({
   imports: [
@@ -24,6 +29,11 @@ import { AiCoreModule } from './ai-core/ai-core.module';
         synchronize: process.env.NODE_ENV !== 'production',
       }),
     }),
+    UsersModule,
+    MembershipsModule,
+    RolesModule,
+    AuditModule,
+    InvitationsModule,
     AuthModule,
     CompaniesModule,
     AiCoreModule,

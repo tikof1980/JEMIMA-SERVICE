@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Company, CompanyStatus } from './company.entity';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectRepository(Company)
     private readonly companiesRepo: Repository<Company>,
+    private readonly auditService: AuditService,
   ) {}
 
   findAll(): Promise<Company[]> {
@@ -20,18 +22,42 @@ export class CompaniesService {
     return company;
   }
 
-  create(data: Partial<Company>): Promise<Company> {
+  async create(data: DeepPartial<Company>, actorUserId?: string): Promise<Company> {
     const company = this.companiesRepo.create(data);
-    return this.companiesRepo.save(company);
+    const saved = await this.companiesRepo.save(company);
+    await this.auditService.log({
+      actorUserId,
+      companyId: saved.id,
+      action: 'CREATE_COMPANY',
+      newValue: { name: saved.name, sector: saved.sector, tenantCode: saved.tenantCode },
+    });
+    return saved;
   }
 
-  async update(id: string, data: Partial<Company>): Promise<Company> {
-    await this.companiesRepo.update(id, data);
-    return this.findOne(id);
+  async update(id: string, data: DeepPartial<Company>, actorUserId?: string): Promise<Company> {
+    const before = await this.findOne(id);
+    await this.companiesRepo.save({ id, ...data });
+    const after = await this.findOne(id);
+    await this.auditService.log({
+      actorUserId,
+      companyId: id,
+      action: 'UPDATE_COMPANY',
+      oldValue: { name: before.name, status: before.status },
+      newValue: { name: after.name, status: after.status },
+    });
+    return after;
   }
 
-  async setStatus(id: string, status: CompanyStatus): Promise<Company> {
+  async setStatus(id: string, status: CompanyStatus, actorUserId?: string): Promise<Company> {
+    const before = await this.findOne(id);
     await this.companiesRepo.update(id, { status });
+    await this.auditService.log({
+      actorUserId,
+      companyId: id,
+      action: 'CHANGE_COMPANY_STATUS',
+      oldValue: { status: before.status },
+      newValue: { status },
+    });
     return this.findOne(id);
   }
 }
