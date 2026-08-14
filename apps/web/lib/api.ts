@@ -25,6 +25,7 @@ export function setActiveCompanyId(companyId: string) {
 
 interface ApiOptions extends RequestInit {
   withCompanyContext?: boolean;
+  companyId?: string; // force un X-Company-Id précis (ex: page /companies/[id])
 }
 
 // Client API centralisé : ajoute automatiquement le token JWT et,
@@ -37,7 +38,9 @@ export async function apiFetch(path: string, options: ApiOptions = {}) {
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (options.withCompanyContext) {
+  if (options.companyId) {
+    headers['X-Company-Id'] = options.companyId;
+  } else if (options.withCompanyContext) {
     const companyId = getActiveCompanyId();
     if (companyId) headers['X-Company-Id'] = companyId;
   }

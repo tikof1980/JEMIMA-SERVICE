@@ -45,4 +45,20 @@ export class MembershipsService {
   async changeRole(id: string, roleId: string): Promise<void> {
     await this.membershipsRepo.update(id, { role: { id: roleId } as any });
   }
+
+  findByCompany(companyId: string): Promise<Membership[]> {
+    return this.membershipsRepo.find({
+      where: { company: { id: companyId } },
+      relations: ['user', 'role'],
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  findById(id: string): Promise<Membership | null> {
+    return this.membershipsRepo.findOne({ where: { id }, relations: ['company', 'user', 'role'] });
+  }
+
+  findOneForUserAndCompanyAnyStatus(userId: string, companyId: string): Promise<Membership | null> {
+    return this.membershipsRepo.findOne({ where: { user: { id: userId }, company: { id: companyId } } });
+  }
 }

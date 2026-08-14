@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { MembershipsService } from '../../memberships/memberships.service';
+import { CompanyStatus } from '../../companies/company.entity';
 
 // Résout et vérifie l'entreprise active pour la requête à partir de
 // l'en-tête X-Company-Id, en la confrontant à l'appartenance réelle en
@@ -32,6 +33,12 @@ export class CompanyContextGuard implements CanActivate {
     );
     if (!membership) {
       throw new ForbiddenException("Accès refusé à cette entreprise");
+    }
+
+    // Cas 5/6 : une entreprise inactive ou archivée ne fonctionne pas comme
+    // une entreprise active, même pour un membre légitime.
+    if (membership.company.status !== CompanyStatus.ACTIVE) {
+      throw new ForbiddenException('Cette entreprise est inactive ou archivée');
     }
 
     request.membership = membership;
